@@ -184,6 +184,14 @@ router app:
     add_samples_from_multifasta_singleline(filepath)
     resp Http201, "OK"
 
+  post "/get_pairwise_distances":
+    let sample_names = request.body.fromJson(seq[string])
+    let data = c.get_pairwise_distances(sample_names)
+    var ret = newJArray()
+    for n in data:
+      ret.add(%*[n[0], n[1], $n[2]])
+    resp(Http200, $(%*(ret)), content_type="application/json")
+
   get "/neighbours/@name/@distance":
     if not c.all_sample_indexes.contains(@"name"):
       resp Http404, "Sample " & @"name" & " doesn't exist"

@@ -187,6 +187,26 @@ proc get_neighbours*(c: var CatWalk, sample_name: string, distance: int) : seq[(
     result.add((c.all_sample_names[neighbour_index], distance))
 
 
+iterator get_matrix(sample_names: seq[string]) : (string, string) =
+  for i in 0..<sample_names.len:
+    for j in i..<sample_names.len:
+      if i == j:
+        continue
+      yield (sample_names[i], sample_names[j])
+
+
+proc get_pairwise_distances*(c: CatWalk, sample_names: seq[string]) : seq[(string, string, int)] =
+  let reflen = c.reference_sequence.len
+  for sam1_name, sam2_name in get_matrix(sample_names):
+    let
+      sam1_index = c.all_sample_indexes[sam1_name]
+      sam2_index = c.all_sample_indexes[sam2_name]
+      sam1 = c.active_samples[sam1_index]
+      sam2 = c.active_samples[sam2_index]
+      d = count_diff2(sam1.diffsets, sam2.diffsets, sam1.n_positions, sam2.n_positions, reflen)
+    result.add((sam1_name, sam2_name, d))
+
+
 proc get_sample_counts*(c: var CatWalk, sample_name: string): Table[string, int] =
   let
     sample_index = c.all_sample_indexes[sample_name]
