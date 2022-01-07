@@ -253,4 +253,5 @@ proc main(bind_host: string = "0.0.0.0",
   jester.serve()
 
 when isMainModule:
+  clCfg.version = compile_version
   dispatch(main)
