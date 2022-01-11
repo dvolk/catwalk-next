@@ -130,6 +130,23 @@ proc reference_compress*(sample_sequence: string, ref_sequence: string, mask: Ma
     sample.status = Ok
   return sample
 
+
+proc recover_sequence_str*(ref_sequence: string, ref_mask: IntSet, sample_diffsets: CompressedSequence, sample_n_positions: IntSet): string =
+  result = ref_sequence
+  for i in sample_diffsets[0]:
+    result[i] = 'A'
+  for i in sample_diffsets[1]:
+    result[i] = 'C'
+  for i in sample_diffsets[2]:
+    result[i] = 'G'
+  for i in sample_diffsets[3]:
+    result[i] = 'T'
+  for i in sample_n_positions:
+    result[i] = 'N'
+  for i in ref_mask:
+    result[i] = 'N'
+
+
 #
 # Mask
 #

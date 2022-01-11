@@ -192,6 +192,14 @@ router app:
       ret.add(%*[n[0], n[1], $n[2]])
     resp(Http200, $(%*(ret)), content_type="application/json")
 
+
+  get "/get_sequence_str":
+    let sample_name = request.params["sample_name"]
+    let index = c.all_sample_indexes[sample_name]
+    let sample = c.active_samples[index]
+    resp Http200, recover_sequence_str(c.reference_sequence, c.mask.positions, sample.diffsets, sample.n_positions)
+
+
   get "/neighbours/@name/@distance":
     if not c.all_sample_indexes.contains(@"name"):
       resp Http404, "Sample " & @"name" & " doesn't exist"
