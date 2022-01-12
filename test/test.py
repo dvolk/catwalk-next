@@ -30,6 +30,12 @@ def add_sample_to_catwalk(sample_name, sample_sequence):
     )
 
 
+def get_pairwise_distances(sample_name_list):
+    return requests.post(
+        "http://localhost:5000/get_pairwise_distances", json=sample_name_list
+    ).json()
+
+
 def remove_sample_from_catwalk(sample_name):
     return requests.get(f"http://localhost:5000/remove_sample/{sample_name}")
 
@@ -46,6 +52,12 @@ def get_debug():
 
 def get_sample_list():
     return requests.get("http://localhost:5000/list_samples").json()
+
+
+def get_sample_str(sample_name):
+    return requests.get(
+        "http://localhost:5000/get_sequence_str", params={"sample_name": sample_name}
+    ).text
 
 
 def go():
@@ -69,17 +81,20 @@ def go():
     n3 = get_neighbours("test3", 50)
     assert n3 == [["test1", "1"], ["test2", "1"]]
 
-    r = remove_sample_from_catwalk("test3")
-    assert r.status_code == 200
-
     print(get_debug())
     print(get_sample_list())
+
+    r = remove_sample_from_catwalk("test3")
+    assert r.status_code == 200
 
     n1 = get_neighbours("test1", 50)
     assert n1 == [["test2", "1"]]
 
     r = add_sample_to_catwalk("test3", "ACGTACGC")
     assert r.status_code == 201
+
+    print(get_debug())
+    print(get_sample_list())
 
     n1 = get_neighbours("test1", 50)
     assert n1 == [["test3", "1"], ["test2", "1"]]
@@ -88,10 +103,26 @@ def go():
     r = add_sample_to_catwalk("test2l", "aCgTAcGg")
     assert r.status_code == 201
     n2l = get_neighbours("test2l", 50)
-    assert n2l == [["test1", "1"], ["test2", "0"]]
+    print(n2l)
+    assert n2l == [["test3", "1"], ["test1", "1"], ["test2", "0"]]
 
     print(get_debug())
     print(get_sample_list())
+
+    print(get_sample_str("test1"))
+    print(get_sample_str("test2"))
+    print(get_sample_str("test3"))
+
+    pw = get_pairwise_distances(["test1", "test2", "test3", "test2l"])
+    print(pw)
+    assert pw == [
+        ["test1", "test2", "1"],
+        ["test1", "test3", "1"],
+        ["test1", "test2l", "1"],
+        ["test2", "test3", "1"],
+        ["test2", "test2l", "0"],
+        ["test3", "test2l", "1"],
+    ]
 
 
 if __name__ == "__main__":
