@@ -210,3 +210,47 @@ class test_cw_5(test_cw):
         self.assertEqual(
             set(self.cw.sample_ok_names()), set(["guid1"])
         )  # order doesn't matter
+
+
+class test_cw_6(test_cw):
+    """tests pairwise distances."""
+
+    def runTest(self):
+        payload1 = {
+            "A": [100000, 100001, 100002],
+            "G": [],
+            "T": [],
+            "C": [],
+            "N": [20000, 20001, 20002],
+        }
+        payload2 = {
+            "A": [100000, 100001, 100003],
+            "G": [],
+            "T": [],
+            "C": [],
+            "N": [20000, 20001, 20002],
+        }
+        payload3 = {
+            "A": [100000, 100002, 100004],
+            "G": [],
+            "T": [],
+            "C": [],
+            "N": [20000, 20001, 20002],
+        }
+        res = self.cw.add_sample_from_refcomp("guid1", payload1)
+        self.assertEqual(res, 201)
+
+        res = self.cw.add_sample_from_refcomp("guid2", payload2)
+        self.assertEqual(res, 201)
+
+        res = self.cw.add_sample_from_refcomp("guid3", payload3)
+        self.assertEqual(res, 201)
+
+        distmat = self.cw.pairwise_distances(["guid1", "guid2", "guid3"])
+        expected = [
+            ["guid1", "guid2", "2"],
+            ["guid1", "guid3", "2"],
+            ["guid2", "guid3", "4"],
+        ]
+
+        self.assertEqual(distmat, expected)

@@ -327,3 +327,11 @@ in either
         r = requests.get("{0}/list_ok_samples".format(self.cw_url))
         r.raise_for_status()
         return r.json()
+
+    def pairwise_distances(self, sample_name_list):
+        """get the distance matrix for the given sample names."""
+        r = requests.post(
+            "{0}/get_pairwise_distances".format(self.cw_url), json=sample_name_list
+        )
+        r.raise_for_status()
+        return r.json()
