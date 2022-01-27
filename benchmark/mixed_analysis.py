@@ -1,12 +1,15 @@
 import collections
 import statistics
+import json
+import math
+import random
 
 import argh
 import requests
 import scipy.stats
 
 import igraph
-from rich import print
+import pandas
 
 
 def get_sample_list():
@@ -40,12 +43,13 @@ def do_analysis(cutoff_distance):
     percentiles = [5, 25, 50, 75, 95]
     neighbour_counts_at = range(0, 16)
 
-    for i, sample_name in enumerate(sample_names[0:11]):
+    for sample_index, sample_name in enumerate(sample_names):
         #
         # part 1. analysis of neighbours of sample
         #
         sample_neighbours_data = get_neighbours(sample_name, cutoff_distance)
 
+        sample_data[sample_name]["sample_name"] = sample_name
         # add number of neighbours
         sample_data[sample_name]["1_count_neighbours"] = len(sample_neighbours_data)
 
@@ -76,15 +80,14 @@ def do_analysis(cutoff_distance):
             sample_neighbour_names + [sample_name]
         )
         sample_neighbour_pairwise_distance_data = [
-            (x[0], x[1], int(x[2]) + 0.1)
-            for x in sample_neighbour_pairwise_distance_data
+            (x[0], x[1], int(x[2])) for x in sample_neighbour_pairwise_distance_data
         ]
 
         sample_neighbour_pairwise_edges = [
             (x[0], x[1]) for x in sample_neighbour_pairwise_distance_data
         ]
         sample_neighbour_pairwise_distances = [
-            x[2] for x in sample_neighbour_pairwise_distance_data
+            int(x[2]) for x in sample_neighbour_pairwise_distance_data
         ]
 
         sample_data[sample_name]["2_count_neighbour_matrix"] = len(
@@ -110,29 +113,52 @@ def do_analysis(cutoff_distance):
                     sample_neighbour_pairwise_distances, neighbour_count_at
                 )
 
-            # sample_data[sample_name][
-            # "2_debug_distance"
-            # ] = sample_neighbour_pairwise_distance_data
+            all_pairwise_names = sample_neighbour_names + [sample_name]
 
             g = igraph.Graph()
-            g.add_vertices(sample_neighbour_names + [sample_name])
-            g.add_edges(sample_neighbour_pairwise_edges)
-            g.es["weight"] = sample_neighbour_distances
+            g.add_vertices(len(all_pairwise_names))
+            vertex_indices = dict()
+            for i in range(len(g.vs)):
+                g.vs[i]["id"] = i
+                vertex_indices[all_pairwise_names[i]] = i
+                g.vs[i]["label"] = all_pairwise_names[i]
 
-            g = igraph.Graph().TupleList(
-                sample_neighbour_pairwise_distance_data, weights=True
+            edges_relabeled = list()
+            for v1, v2 in sample_neighbour_pairwise_edges:
+                edges_relabeled.append((vertex_indices[v1], vertex_indices[v2]))
+            g.add_edges(edges_relabeled)
+            weights = [x + 0.01 for x in sample_neighbour_pairwise_distances]
+            g.es["weight"] = weights
+            # g.es["label"] = weights
+            g.es["curved"] = False
+
+            # rewire_trials = len(sample_neighbour_pairwise_distance_data)
+            # g.rewire(n=rewire_trials)
+
+            vertex_betweenness = igraph.rescale(
+                g.betweenness(weights=g.es["weight"]),
+                clamp=True,
+                scale=lambda x: math.pow(x, 1 / 3),
+            )
+            # sample_data[sample_name]["2_centrality"] = g.eigenvector_centrality(
+            #    weights=sample_neighbour_pairwise_distances
+            # )
+            vertex_size = igraph.rescale(vertex_betweenness, (10, 100))
+            # print(vertex_size)
+            print(sample_index, sample_name, "writing graph")
+            igraph.plot(
+                g,
+                f"igraph_pngs/{sample_index}.png",
+                layout=g.layout_lgl(),
+                bbox=(1000, 1000),
+                vertex_size=vertex_size,
+                edge_color="grey",
             )
 
-            rewire_trials = 10 * len(sample_neighbour_pairwise_distance_data)
-            g.rewire(n=rewire_trials)
+    xs = [[k] + list(v.values()) for k, v in sample_data.items()]
 
-            sample_data[sample_name]["2_centrality"] = g.eigenvector_centrality(
-                weights=sample_neighbour_pairwise_distances
-            )
-            g.layout_auto()
-            igraph.plot(g, f"{i}.png")
-
-    print(sample_data)
+    df = pandas.DataFrame(sample_data.values())
+    df.to_csv("mixanalysis.csv")
 
 
 if __name__ == "__main__":
