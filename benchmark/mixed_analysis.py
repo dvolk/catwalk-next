@@ -44,6 +44,11 @@ def do_analysis(cutoff_distance):
     neighbour_counts_at = range(0, 16)
 
     for sample_index, sample_name in enumerate(sample_names):
+        if "+" in sample_name and ":" not in sample_name:
+            sample_data[sample_name]["mixed"] = True
+        else:
+            sample_data[sample_name]["mixed"] = False
+
         #
         # part 1. analysis of neighbours of sample
         #
