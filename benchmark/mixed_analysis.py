@@ -135,14 +135,23 @@ def do_analysis(cutoff_distance):
             # rewire_trials = len(sample_neighbour_pairwise_distance_data)
             # g.rewire(n=rewire_trials)
 
+            # how does 3sqrt scale to 0-1?
             vertex_betweenness = igraph.rescale(
                 g.betweenness(weights=g.es["weight"]),
                 clamp=True,
                 scale=lambda x: math.pow(x, 1 / 3),
             )
-            # sample_data[sample_name]["2_centrality"] = g.eigenvector_centrality(
-            #    weights=sample_neighbour_pairwise_distances
-            # )
+            sample_data[sample_name][
+                "2_sample_vertex_betweenness"
+            ] = vertex_betweenness[-1]
+
+            edge_betweenness = igraph.rescale(
+                g.edge_betweenness(weights=g.es["weight"]),
+                clamp=True,
+                scale=lambda x: math.pow(x, 1 / 2),
+            )
+            sample_data[sample_name]["2_sample_edge_betweenness"] = edge_betweenness[-1]
+
             vertex_size = igraph.rescale(vertex_betweenness, (10, 100))
             # print(vertex_size)
             print(sample_index, sample_name, "writing graph")
@@ -152,7 +161,9 @@ def do_analysis(cutoff_distance):
                 layout=g.layout_lgl(),
                 bbox=(1000, 1000),
                 vertex_size=vertex_size,
+                vertex_frame_width=0.2,
                 edge_color="grey",
+                edge_width=igraph.rescale(edge_betweenness, (0.5, 5.0)),
             )
 
     xs = [[k] + list(v.values()) for k, v in sample_data.items()]
