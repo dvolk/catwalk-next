@@ -150,7 +150,6 @@ def do_analysis(cutoff_distance):
                 clamp=True,
                 scale=lambda x: math.pow(x, 1 / 2),
             )
-            sample_data[sample_name]["2_sample_edge_betweenness"] = edge_betweenness[-1]
 
             vertex_size = igraph.rescale(vertex_betweenness, (10, 100))
             # print(vertex_size)
