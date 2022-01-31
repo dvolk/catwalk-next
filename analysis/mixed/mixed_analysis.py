@@ -179,11 +179,15 @@ def make_roc_curve_graphs(csv_filename):
     df = pandas.read_csv(csv_filename)
     y_true = list(map(int, df["mixed"].values))
     pathlib.Path("roc_curves").mkdir(exist_ok=True)
+    out = collections.defaultdict(dict)
     for col_name in df.keys()[3:]:
         dat = df[col_name].values
         fpr, tpr, _ = sklearn.metrics.roc_curve(y_true, dat)
         score = sklearn.metrics.auc(fpr, tpr)
         cor = scipy.stats.pearsonr(y_true, dat)
+        out[col_name]["col_name"] = col_name
+        out[col_name]["auc"] = score
+        out[col_name]["pearsonr"] = cor[0]
         print(f"{col_name}, aoc: {score}")
         plt.figure()
         plt.title(f"ROC curve for {col_name}")
@@ -200,6 +204,9 @@ def make_roc_curve_graphs(csv_filename):
         plt.ylabel("True Positive Rate")
         plt.legend(loc="lower right")
         plt.savefig(f"roc_curves/roc_{col_name}.png")
+
+    df = pandas.DataFrame(out.values())
+    df.to_csv("mixroc.csv")
 
 
 if __name__ == "__main__":
