@@ -1,15 +1,15 @@
 import collections
-import statistics
-import json
 import math
-import random
+import statistics
+import pathlib
 
 import argh
+import igraph
+import matplotlib.pyplot as plt
+import pandas
 import requests
 import scipy.stats
-
-import igraph
-import pandas
+import sklearn.metrics
 
 
 def get_sample_list():
@@ -28,7 +28,7 @@ def get_pairwise_distances(sample_name_list):
     ).json()
 
 
-def count_neighbours(xs, p):
+def count_elem(xs, p):
     count = 0
     for x in xs:
         if x == p:
@@ -36,12 +36,14 @@ def count_neighbours(xs, p):
     return count
 
 
-def do_analysis(cutoff_distance):
+def make_csv_and_graphs(cutoff_distance):
     sample_names = get_sample_list()
     sample_data = collections.defaultdict(dict)
 
     percentiles = [5, 25, 50, 75, 95]
     neighbour_counts_at = range(0, 16)
+
+    pathlib.Path("igraph_pngs").mkdir(exist_ok=True)
 
     for sample_index, sample_name in enumerate(sample_names):
         if "+" in sample_name and ":" not in sample_name:
@@ -75,7 +77,7 @@ def do_analysis(cutoff_distance):
             for neighbour_count_at in neighbour_counts_at:
                 sample_data[sample_name][
                     f"1_neighbours_snp_{neighbour_count_at}"
-                ] = count_neighbours(sample_neighbour_distances, neighbour_count_at)
+                ] = count_elem(sample_neighbour_distances, neighbour_count_at)
 
         #
         # part 2. analysis of sample neighbour pair matrix
@@ -114,9 +116,7 @@ def do_analysis(cutoff_distance):
             for neighbour_count_at in neighbour_counts_at:
                 sample_data[sample_name][
                     f"2_neighbours_snp_{neighbour_count_at}"
-                ] = count_neighbours(
-                    sample_neighbour_pairwise_distances, neighbour_count_at
-                )
+                ] = count_elem(sample_neighbour_pairwise_distances, neighbour_count_at)
 
             all_pairwise_names = sample_neighbour_names + [sample_name]
 
@@ -129,6 +129,7 @@ def do_analysis(cutoff_distance):
                 g.vs[i]["label"] = all_pairwise_names[i]
 
             edges_relabeled = list()
+
             for v1, v2 in sample_neighbour_pairwise_edges:
                 edges_relabeled.append((vertex_indices[v1], vertex_indices[v2]))
             g.add_edges(edges_relabeled)
@@ -170,11 +171,36 @@ def do_analysis(cutoff_distance):
                 edge_width=igraph.rescale(edge_betweenness, (0.5, 5.0)),
             )
 
-    xs = [[k] + list(v.values()) for k, v in sample_data.items()]
-
     df = pandas.DataFrame(sample_data.values())
     df.to_csv("mixanalysis.csv")
 
 
+def make_roc_curve_graphs(csv_filename):
+    df = pandas.read_csv(csv_filename)
+    y_true = list(map(int, df["mixed"].values))
+    pathlib.Path("roc_curves").mkdir(exist_ok=True)
+    for col_name in df.keys()[3:]:
+        dat = df[col_name].values
+        fpr, tpr, _ = sklearn.metrics.roc_curve(y_true, dat)
+        score = sklearn.metrics.auc(fpr, tpr)
+        cor = scipy.stats.pearsonr(y_true, dat)
+        print(f"{col_name}, aoc: {score}")
+        plt.figure()
+        plt.title(f"ROC curve for {col_name}")
+        plt.plot(
+            fpr,
+            tpr,
+            label=f"ROC curve for {col_name} (area = {score:.2f}, cor={cor[0]:.2f})",
+            lw=2,
+        )
+        plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--")
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.legend(loc="lower right")
+        plt.savefig(f"roc_curves/roc_{col_name}.png")
+
+
 if __name__ == "__main__":
-    argh.dispatch_command(do_analysis)
+    argh.dispatch_commands([make_csv_and_graphs, make_roc_curve_graphs])
