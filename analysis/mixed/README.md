@@ -2,10 +2,10 @@
 
 ## Creating mixed samples
 
-### Copy and unarchive benchmark/sim/sim0.fasta.gz
+### Copy and unarchive `benchmark/sim/sim0.fasta.gz`
 
-cp ../../benchmark/sim/sim0.fasta.gz .
-tar xf sim0.fasta.gz
+    cp ../../benchmark/sim/sim0.fasta.gz .
+    tar xf sim0.fasta.gz
 
 ### Generate combined unmixed and mixed fasta file
 
