@@ -36,14 +36,14 @@ def count_elem(xs, p):
     return count
 
 
-def make_csv_and_graphs(cutoff_distance):
+def make_csv_and_graphs(cutoff_distance, outprefix):
     sample_names = get_sample_list()
     sample_data = collections.defaultdict(dict)
 
     percentiles = [5, 25, 50, 75, 95]
     neighbour_counts_at = range(0, 16)
 
-    pathlib.Path("igraph_pngs").mkdir(exist_ok=True)
+    pathlib.Path(f"{outprefix}-igraph_pngs").mkdir(exist_ok=True)
 
     for sample_index, sample_name in enumerate(sample_names):
         if "+" in sample_name and ":" not in sample_name:
@@ -162,7 +162,7 @@ def make_csv_and_graphs(cutoff_distance):
             print(sample_index, sample_name, "writing graph")
             igraph.plot(
                 g,
-                f"igraph_pngs/{sample_index}.png",
+                f"{outprefix}-igraph_pngs/{sample_index}.png",
                 layout=g.layout_lgl(),
                 bbox=(1000, 1000),
                 vertex_size=vertex_size,
@@ -172,13 +172,13 @@ def make_csv_and_graphs(cutoff_distance):
             )
 
     df = pandas.DataFrame(sample_data.values())
-    df.to_csv("mixanalysis.csv")
+    df.to_csv(f"{outprefix}-mixanalysis.csv")
 
 
-def make_roc_curve_graphs(csv_filename):
+def make_roc_curve_graphs(csv_filename, outprefix):
     df = pandas.read_csv(csv_filename)
     y_true = list(map(int, df["mixed"].values))
-    pathlib.Path("roc_curves").mkdir(exist_ok=True)
+    pathlib.Path(f"{outprefix}-roc_curves").mkdir(exist_ok=True)
     out = collections.defaultdict(dict)
     for col_name in df.keys()[3:]:
         dat = df[col_name].values
@@ -203,10 +203,10 @@ def make_roc_curve_graphs(csv_filename):
         plt.xlabel("False Positive Rate")
         plt.ylabel("True Positive Rate")
         plt.legend(loc="lower right")
-        plt.savefig(f"roc_curves/roc_{col_name}.png")
+        plt.savefig(f"{outprefix}-roc_curves/roc_{col_name}.png")
 
     df = pandas.DataFrame(out.values())
-    df.to_csv("mixroc.csv")
+    df.to_csv(f"{outprefix}-roc.csv")
 
 
 if __name__ == "__main__":
