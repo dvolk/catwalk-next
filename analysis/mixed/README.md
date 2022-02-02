@@ -11,7 +11,7 @@
 
 eg.:
 
-    python3 mixed_utils.py -r 1 -o 1050randomNs sim0.fasta --number-of-random-ns 50 --number-of-primer-gaps 2
+    python3 mixed_utils.py --number-of-mixed 50 -r 1 -o 1050randomNs sim0.fasta --number-of-random-ns 50 --number-of-primer-gaps 2
 
 this will create the files `1050randomNs.fasta` and `1050randomNs.csv`
 
