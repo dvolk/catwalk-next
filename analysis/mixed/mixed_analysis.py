@@ -100,7 +100,7 @@ def make_csv_and_graphs(cutoff_distance, outprefix):
         sample_data[sample_name]["2_count_neighbour_matrix"] = len(
             sample_neighbour_pairwise_distances
         )
-        if len(sample_neighbour_pairwise_distances) > 3:
+        if len(sample_neighbour_pairwise_distances) >= 2:
             sample_data[sample_name]["2_mean"] = statistics.mean(
                 sample_neighbour_pairwise_distances
             )
