@@ -20,14 +20,9 @@ is written to outprefix.csv"""
 from dataclasses import dataclass
 import datetime
 import random
+import pathlib
 
 import argh
-
-
-def mutable_string(mystr):
-    mylist = list(mystr)
-    for x in mylist:
-        yield x
 
 
 @dataclass
@@ -89,9 +84,37 @@ def parse_header(sample):
         pass
 
 
+def insert_random_ns(sequence, number_of_ns):
+    # create list of eligable positions
+    # this is inefficient on large sequences
+    candidates = [i for i, b in enumerate(sequence) if b in "ACGT"]
+    # choose positions from candidates
+    number_of_ns = min(number_of_ns, len(candidates))
+    mask_idx = random.sample(candidates, k=number_of_ns)
+    # mask sequence
+    newseq = list(sequence)
+    for i in mask_idx:
+        newseq[i] = "N"
+    return "".join(newseq)
+
+
 def sample_insert_random_ns(sample, number_of_ns):
     sample.sequence = insert_random_ns(sample.sequence, number_of_ns)
     sample.count_ns_random = number_of_ns
+
+
+primer_gaps = list()
+
+
+def mask_primer_gaps(sequence, number_of_primer_gaps):
+    count = 0
+    ranges_to_mask = random.sample(primer_gaps, k=number_of_primer_gaps)
+    newseq = list(sequence)
+    for range_to_mask in ranges_to_mask:
+        for x in range_to_mask:
+            newseq[x] = "N"
+            count += 1
+    return "".join(newseq), count
 
 
 def sample_mask_primer_gaps(sample, number_of_primer_gaps):
@@ -152,43 +175,17 @@ def mix_pair(pair, number_of_random_ns, number_of_primer_gaps):
         name=f"{sam1.name}+{sam2.name}",
         mix_debug=f"{sam1.sequence}+{sam2.sequence}",
         count_ns_mixture=count_mixture_ns,
-        count_ns_random=0,
-        count_ns_primer_dropout=0,
+        # these two counts are approximate?
+        count_ns_random=(sam1.count_ns_random + sam2.count_ns_random) // 2,
+        count_ns_primer_dropout=(
+            sam1.count_ns_primer_dropout + sam2.count_ns_primer_dropout
+        )
+        // 2,
         mix_parent1=sam1.name,
         mix_parent2=sam2.name,
     )
-    sample_mask_primer_gaps(s, number_of_primer_gaps)
-    sample_insert_random_ns(s, number_of_random_ns)
 
     return s
-
-
-def insert_random_ns(sequence, number_of_ns):
-    # create list of eligable positions
-    # this is inefficient on large sequences
-    candidates = [i for i, b in enumerate(sequence) if b in "ACGT"]
-    # choose positions from candidates
-    number_of_ns = min(number_of_ns, len(candidates))
-    mask_idx = random.sample(candidates, k=number_of_ns)
-    # mask sequence
-    newseq = list(sequence)
-    for i in mask_idx:
-        newseq[i] = "N"
-    return "".join(newseq)
-
-
-def mask_primer_gaps(sequence, number_of_primer_gaps):
-    count = 0
-    ranges_to_mask = random.sample(primer_gaps, k=number_of_primer_gaps)
-    newseq = list(sequence)
-    for range_to_mask in ranges_to_mask:
-        for x in range_to_mask:
-            newseq[x] = "N"
-            count += 1
-    return "".join(newseq), count
-
-
-primer_gaps = list()
 
 
 def parse_covid_bed_file():
@@ -235,12 +232,16 @@ def print_mixed_samples(
     all_ok_sample_pairs = generate_all_sample_pairs(all_samples, days)
     picked_pairs = random.sample(all_ok_sample_pairs, k=number_of_mixed)
 
-    outsamples = open(outprefix + ".fasta", "w")
-    outcsv = open(outprefix + ".csv", "w")
+    pathlib.Path(outprefix).mkdir(exist_ok=True)
+
+    outsamples = open(f"{outprefix}/mixed.fasta", "w")
+    outcsv = open(f"{outprefix}/mixed.csv", "w")
 
     outcsv.write(outcsv_header)
 
     for sam in all_samples:
+        sample_insert_random_ns(sam, number_of_random_ns)
+        sample_mask_primer_gaps(sam, number_of_primer_gaps)
         outsamples.write(format_sample(sam))
         outcsv.write(format_sample_csvline(sam))
 
