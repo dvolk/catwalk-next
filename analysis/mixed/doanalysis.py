@@ -61,6 +61,7 @@ def go(
         time.sleep(2)
         ## do analysis
         run(f"python3 mixed_analysis.py make-csv-and-graphs {k} {loop_prefix}")
+
         ## remove samples with fewer than 2 neighbours
         run(
             f"cat {loop_prefix}/mixanalysis.csv | grep -v ,, > {loop_prefix}/mixanalysis-cleaned.csv"
