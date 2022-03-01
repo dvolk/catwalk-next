@@ -35,3 +35,9 @@ Creates PNG graphs of variation of AUC based on cut-off from statistics in csv
 eg.:
 
     python3 doanalysis2.py sim0.fasta_mixed50_randomNs0_primergaps0/
+
+# Step 3
+
+Generate heatmap for ROC curve AUC
+
+    python3 auc_heatmap.py -d sim0.fasta_mixed50_randomNs0_primergaps0/ sim0.fasta_mixed50_randomNs50_primergaps2/
